@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --border:    #2a2d3e;
+      --text:      #e2e8f0;
+      --muted:     #8892a4;
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --accent:    #6366f1;
+      --radius:    12px;
+      --font:      'Inter', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo svg { color: var(--accent); }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #status-badge {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+      background: rgba(99,102,241,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(99,102,241,0.3);
+    }
+
+    #status-badge.loading { background: rgba(234,179,8,0.15); color: #eab308; border-color: rgba(234,179,8,0.3); }
+    #status-badge.error   { background: rgba(239,68,68,0.15);  color: var(--red);   border-color: rgba(239,68,68,0.3);  }
+
+    #next-refresh {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.8; }
+
+    #refresh-btn {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    #config-btn {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Summary bar ── */
+    #summary-bar {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .summary-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .summary-pill span:first-child { color: var(--muted); }
+    .up   { color: var(--green); }
+    .down { color: var(--red); }
+
+    /* ── Grid ── */
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .symbol {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+
+    .badge.up   { background: rgba(34,197,94,0.15);  color: var(--green); }
+    .badge.down { background: rgba(239,68,68,0.15);  color: var(--red);   }
+    .badge.flat { background: rgba(139,148,164,0.15); color: var(--muted); }
+
+    .price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .price {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .change-abs {
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .prev-close {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .chart-wrap {
+      height: 60px;
+      position: relative;
+    }
+
+    .error-msg {
+      font-size: 0.8rem;
+      color: var(--red);
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    /* ── Config Modal ── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-overlay.open { display: flex; }
+
+    #modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      width: min(480px, 90vw);
+    }
+
+    #modal h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .field input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.9rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: var(--accent); }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    #save-btn { background: var(--accent); color: #fff; }
+    #cancel-btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+
+    /* ── Skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, #2f3347 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .sk-symbol  { height: 18px; width: 70px; }
+    .sk-price   { height: 28px; width: 120px; margin-top: 6px; }
+    .sk-chart   { height: 60px; width: 100%; margin-top: 4px; }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 36px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+      <polyline points="16 7 22 7 22 13"/>
+    </svg>
+    <h1>Stock Dashboard</h1>
+  </div>
+  <div class="header-right">
+    <span id="status-badge">Live</span>
+    <span id="next-refresh"></span>
+    <button id="refresh-btn">&#8635; Refresh</button>
+    <button id="config-btn">&#9881; Configure</button>
+  </div>
+</header>
+
+<div id="summary-bar"></div>
+<div id="grid"></div>
+
+<footer>
+  Data provided by Yahoo Finance via yfinance &mdash; prices may be delayed.
+</footer>
+
+<!-- Config modal -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>Dashboard Settings</h2>
+    <div class="field">
+      <label>Tickers (comma-separated)</label>
+      <input id="cfg-stocks" type="text" placeholder="AAPL,MSFT,GOOGL,NVDA" />
+    </div>
+    <div class="field">
+      <label>Auto-refresh interval (seconds)</label>
+      <input id="cfg-interval" type="number" min="10" step="5" placeholder="60" />
+    </div>
+    <div class="modal-actions">
+      <button id="cancel-btn">Cancel</button>
+      <button id="save-btn">Save &amp; Reload</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let stocks       = [];
+  let refreshTimer = null;
+  let countdownId  = null;
+  let nextRefreshIn = 60;
+  const charts = {};   // symbol -> Chart instance
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const fmt = n => n == null ? '—' : '$' + n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const fmtChg = n => n == null ? '' : (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
+  const fmtAbs = n => n == null ? '' : (n >= 0 ? '+$' : '-$') + Math.abs(n).toFixed(2);
+
+  function dirClass(n) {
+    if (n == null) return 'flat';
+    return n > 0 ? 'up' : n < 0 ? 'down' : 'flat';
+  }
+
+  // ── Sparkline chart ────────────────────────────────────────────────────────
+  async function loadChart(symbol, canvas) {
+    try {
+      const resp = await fetch(`/api/history/${symbol}?period=1mo`);
+      const data = await resp.json();
+      if (!data.history || data.history.length === 0) return;
+
+      const closes = data.history.map(d => d.close);
+      const labels = data.history.map(d => d.date);
+      const isUp   = closes.at(-1) >= closes[0];
+      const color  = isUp ? '#22c55e' : '#ef4444';
+
+      if (charts[symbol]) {
+        charts[symbol].destroy();
+        delete charts[symbol];
+      }
+
+      charts[symbol] = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data:        closes,
+            borderColor: color,
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill:        true,
+            backgroundColor: (ctx) => {
+              const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 60);
+              g.addColorStop(0, color + '33');
+              g.addColorStop(1, color + '00');
+              return g;
+            },
+          }]
+        },
+        options: {
+          animation:   false,
+          responsive:  true,
+          maintainAspectRatio: false,
+          plugins:     { legend: { display: false }, tooltip: { enabled: false } },
+          scales:      { x: { display: false }, y: { display: false } },
+          elements:    { line: { tension: 0.3 } },
+        }
+      });
+    } catch (_) { /* sparkline optional */ }
+  }
+
+  // ── Render cards ───────────────────────────────────────────────────────────
+  function renderSkeletons(count = 6) {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = Array.from({length: count}, () => `
+      <div class="card">
+        <div class="skeleton sk-symbol"></div>
+        <div class="skeleton sk-price"></div>
+        <div class="skeleton sk-chart"></div>
+      </div>
+    `).join('');
+  }
+
+  function renderCards() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+
+    stocks.forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      const dir = dirClass(s.change_pct);
+
+      if (s.error) {
+        card.innerHTML = `
+          <div class="card-header">
+            <span class="symbol">${s.symbol}</span>
+            <span class="badge down">ERROR</span>
+          </div>
+          <p class="error-msg">${s.error}</p>
+        `;
+      } else {
+        card.innerHTML = `
+          <div class="card-header">
+            <span class="symbol">${s.symbol}</span>
+            <span class="badge ${dir}">${fmtChg(s.change_pct)}</span>
+          </div>
+          <div class="price-row">
+            <span class="price">${fmt(s.price)}</span>
+            <span class="change-abs ${dir}">${fmtAbs(s.change)}</span>
+          </div>
+          <p class="prev-close">Prev close ${fmt(s.prev_close)}</p>
+          <div class="chart-wrap">
+            <canvas id="chart-${s.symbol}"></canvas>
+          </div>
+        `;
+      }
+
+      grid.appendChild(card);
+
+      if (!s.error) {
+        const canvas = document.getElementById(`chart-${s.symbol}`);
+        loadChart(s.symbol, canvas);
+      }
+    });
+  }
+
+  // ── Summary bar ────────────────────────────────────────────────────────────
+  function renderSummary() {
+    const bar   = document.getElementById('summary-bar');
+    const valid = stocks.filter(s => !s.error);
+    const ups   = valid.filter(s => s.change_pct > 0).length;
+    const downs = valid.filter(s => s.change_pct < 0).length;
+    const flat  = valid.filter(s => s.change_pct === 0).length;
+
+    const best = valid.reduce((a, b) => (b.change_pct > (a?.change_pct ?? -Infinity) ? b : a), null);
+    const worst= valid.reduce((a, b) => (b.change_pct < (a?.change_pct ?? Infinity)  ? b : a), null);
+
+    bar.innerHTML = `
+      <div class="summary-pill"><span>Gainers</span><span class="up">${ups}</span></div>
+      <div class="summary-pill"><span>Losers</span><span class="down">${downs}</span></div>
+      <div class="summary-pill"><span>Flat</span><span>${flat}</span></div>
+      ${best ? `<div class="summary-pill"><span>Best</span><span class="up">${best.symbol} ${fmtChg(best.change_pct)}</span></div>` : ''}
+      ${worst ? `<div class="summary-pill"><span>Worst</span><span class="down">${worst.symbol} ${fmtChg(worst.change_pct)}</span></div>` : ''}
+    `;
+  }
+
+  // ── Fetch & refresh ────────────────────────────────────────────────────────
+  function setBadge(state, label) {
+    const b = document.getElementById('status-badge');
+    b.className = state;
+    b.textContent = label;
+  }
+
+  function startCountdown(seconds) {
+    clearInterval(countdownId);
+    nextRefreshIn = seconds;
+    const el = document.getElementById('next-refresh');
+    countdownId = setInterval(() => {
+      nextRefreshIn--;
+      if (nextRefreshIn <= 0) {
+        clearInterval(countdownId);
+        el.textContent = '';
+      } else {
+        el.textContent = `Next refresh in ${nextRefreshIn}s`;
+      }
+    }, 1000);
+  }
+
+  async function fetchStocks(force = false) {
+    setBadge('loading', 'Loading…');
+    try {
+      const url  = force ? '/api/stocks?force=true' : '/api/stocks';
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      stocks = data.stocks;
+      renderCards();
+      renderSummary();
+      setBadge('', 'Live');
+      startCountdown(data.next_refresh || 60);
+
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => fetchStocks(), (data.next_refresh || 60) * 1000);
+    } catch (e) {
+      setBadge('error', 'Error');
+      console.error(e);
+    }
+  }
+
+  // ── Config modal ───────────────────────────────────────────────────────────
+  async function openConfig() {
+    const resp = await fetch('/api/config');
+    const cfg  = await resp.json();
+    document.getElementById('cfg-stocks').value   = cfg.stocks_list   || '';
+    document.getElementById('cfg-interval').value = cfg.refresh_interval || 60;
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeConfig() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+
+  async function saveConfig() {
+    const stocks_list       = document.getElementById('cfg-stocks').value.trim();
+    const refresh_interval  = parseInt(document.getElementById('cfg-interval').value) || 60;
+    await fetch('/api/config', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({stocks_list, refresh_interval}),
+    });
+    closeConfig();
+    Object.values(charts).forEach(c => c.destroy());
+    Object.keys(charts).forEach(k => delete charts[k]);
+    renderSkeletons();
+    fetchStocks(true);
+  }
+
+  // ── Wire up ────────────────────────────────────────────────────────────────
+  document.getElementById('refresh-btn').addEventListener('click', () => {
+    clearTimeout(refreshTimer);
+    fetchStocks(true);
+  });
+  document.getElementById('config-btn').addEventListener('click', openConfig);
+  document.getElementById('save-btn').addEventListener('click', saveConfig);
+  document.getElementById('cancel-btn').addEventListener('click', closeConfig);
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-overlay')) closeConfig();
+  });
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  renderSkeletons();
+  fetchStocks();
+</script>
+</body>
+</html>
