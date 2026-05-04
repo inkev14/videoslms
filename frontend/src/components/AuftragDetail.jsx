@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext,
@@ -264,10 +264,14 @@ export default function AuftragDetail({ auftragId, onClose }) {
   const { data: auftrag, isLoading } = useQuery({
     queryKey: ['auftraege', auftragId],
     queryFn: () => auftraegeApi.getById(auftragId),
-    onSuccess: (data) => {
-      if (!localSchritte) setLocalSchritte(data.schritte || [])
-    },
   })
+
+  // Sync local schritte from server when auftrag first loads
+  useEffect(() => {
+    if (auftrag && !localSchritte) {
+      setLocalSchritte(auftrag.schritte || [])
+    }
+  }, [auftrag, localSchritte])
 
   // Sync local schritte when auftrag loads
   const schritte = localSchritte || auftrag?.schritte || []

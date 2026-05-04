@@ -3,7 +3,9 @@ from __future__ import annotations
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-DATABASE_URL = "sqlite:///./getriebelms.db"
+import os
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./getriebelms.db")
 
 engine = create_engine(
     DATABASE_URL,

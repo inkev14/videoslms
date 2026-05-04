@@ -1,0 +1,21 @@
+services:
+  backend:
+    build: ./backend
+    container_name: getriebelms-backend
+    volumes:
+      - db_data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:////app/data/getriebelms.db
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: getriebelms-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  db_data:
