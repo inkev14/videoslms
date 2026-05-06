@@ -17,5 +17,12 @@ services:
       - backend
     restart: unless-stopped
 
+  stock-dashboard:
+    build: ./stock_dashboard
+    container_name: stock-dashboard
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
 volumes:
   db_data:
