@@ -17,9 +17,9 @@ api.interceptors.response.use(
 
 // ─── Aufträge ────────────────────────────────────────────────────────────────
 export const auftraegeApi = {
-  getAll: (params) => api.get('/auftraege/', { params }).then((r) => r.data),
+  getAll: (params) => api.get('/auftraege', { params }).then((r) => r.data),
   getById: (id) => api.get(`/auftraege/${id}`).then((r) => r.data),
-  create: (data) => api.post('/auftraege/', data).then((r) => r.data),
+  create: (data) => api.post('/auftraege', data).then((r) => r.data),
   update: (id, data) => api.put(`/auftraege/${id}`, data).then((r) => r.data),
   delete: (id) => api.delete(`/auftraege/${id}`).then((r) => r.data),
   reorder: (id, positions) =>
@@ -29,8 +29,8 @@ export const auftraegeApi = {
 // ─── Arbeitsschritte ─────────────────────────────────────────────────────────
 export const arbeitsschritteApi = {
   getAll: (filters) =>
-    api.get('/arbeitsschritte/', { params: filters }).then((r) => r.data),
-  create: (data) => api.post('/arbeitsschritte/', data).then((r) => r.data),
+    api.get('/arbeitsschritte', { params: filters }).then((r) => r.data),
+  create: (data) => api.post('/arbeitsschritte', data).then((r) => r.data),
   update: (id, data) => api.put(`/arbeitsschritte/${id}`, data).then((r) => r.data),
   delete: (id) => api.delete(`/arbeitsschritte/${id}`).then((r) => r.data),
   verschieben: (id, neue_kw) =>
@@ -39,8 +39,8 @@ export const arbeitsschritteApi = {
 
 // ─── Monteure ────────────────────────────────────────────────────────────────
 export const monteureApi = {
-  getAll: () => api.get('/monteure/').then((r) => r.data),
-  create: (data) => api.post('/monteure/', data).then((r) => r.data),
+  getAll: () => api.get('/monteure').then((r) => r.data),
+  create: (data) => api.post('/monteure', data).then((r) => r.data),
   update: (id, data) => api.put(`/monteure/${id}`, data).then((r) => r.data),
   getAuslastung: (id) =>
     api.get(`/monteure/${id}/auslastung`).then((r) => r.data),
@@ -48,9 +48,9 @@ export const monteureApi = {
 
 // ─── Vorlagen ────────────────────────────────────────────────────────────────
 export const vorlagenApi = {
-  getAll: () => api.get('/vorlagen/').then((r) => r.data),
+  getAll: () => api.get('/vorlagen').then((r) => r.data),
   getById: (id) => api.get(`/vorlagen/${id}`).then((r) => r.data),
-  create: (data) => api.post('/vorlagen/', data).then((r) => r.data),
+  create: (data) => api.post('/vorlagen', data).then((r) => r.data),
   update: (id, data) => api.put(`/vorlagen/${id}`, data).then((r) => r.data),
   delete: (id) => api.delete(`/vorlagen/${id}`).then((r) => r.data),
   addSchritt: (id, data) =>
@@ -69,8 +69,8 @@ export const vorlagenApi = {
 
 // ─── Auswärts ─────────────────────────────────────────────────────────────────
 export const auswärtsApi = {
-  getAll: (params) => api.get('/auswarts/', { params }).then((r) => r.data),
-  create: (data) => api.post('/auswarts/', data).then((r) => r.data),
+  getAll: (params) => api.get('/auswarts', { params }).then((r) => r.data),
+  create: (data) => api.post('/auswarts', data).then((r) => r.data),
   update: (id, data) => api.put(`/auswarts/${id}`, data).then((r) => r.data),
   delete: (id) => api.delete(`/auswarts/${id}`).then((r) => r.data),
 }
