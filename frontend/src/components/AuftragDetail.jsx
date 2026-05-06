@@ -112,8 +112,8 @@ function SortableSchritt({ schritt, index, monteure, onUpdate, onDelete, kwOptio
       <td className="px-2 py-2">
         <select
           className="text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
-          value={local.kw || ''}
-          onChange={e => handleChange('kw', e.target.value)}
+          value={local.geplant_kw || ''}
+          onChange={e => handleChange('geplant_kw', e.target.value)}
         >
           <option value="">– KW –</option>
           {kwOptions.map(kw => <option key={kw} value={kw}>{kwToLabel(kw)}</option>)}
@@ -179,7 +179,7 @@ function NewSchrittRow({ auftragId, monteure, kwOptions, onSave, onCancel }) {
     typ: 'Demontage',
     bezeichnung: '',
     monteur_id: '',
-    kw: '',
+    geplant_kw: '',
     teile_status: 'N/A',
   })
 
@@ -225,8 +225,8 @@ function NewSchrittRow({ auftragId, monteure, kwOptions, onSave, onCancel }) {
       <td className="px-2 py-2">
         <select
           className="text-xs border border-blue-300 rounded px-1.5 py-1 focus:outline-none bg-white"
-          value={form.kw}
-          onChange={e => setForm(f => ({ ...f, kw: e.target.value }))}
+          value={form.geplant_kw}
+          onChange={e => setForm(f => ({ ...f, geplant_kw: e.target.value }))}
         >
           <option value="">– KW –</option>
           {kwOptions.map(kw => <option key={kw} value={kw}>{kwToLabel(kw)}</option>)}
@@ -341,8 +341,8 @@ export default function AuftragDetail({ auftragId, onClose }) {
     const newIdx = schritte.findIndex(s => s.id === over.id)
     const newOrder = arrayMove(schritte, oldIdx, newIdx)
     setLocalSchritte(newOrder)
-    const positions = newOrder.reduce((acc, s, i) => { acc[s.id] = i; return acc }, {})
-    reorderMutation.mutate(positions)
+    const items = newOrder.map((s, i) => ({ id: s.id, position: i + 1 }))
+    reorderMutation.mutate(items)
   }
 
   const handleDeleteSchritt = (id) => {

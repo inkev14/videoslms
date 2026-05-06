@@ -51,12 +51,12 @@ function InlineDateEdit({ value, onSave, placeholder = 'Datum…' }) {
 function AuswärtsRow({ item, onUpdate, onDelete }) {
   const isOverdue = item.erw_rueckkehr &&
     new Date(item.erw_rueckkehr) < new Date() &&
-    item.status !== 'Zurück'
+    item.auswarts_status !== 'Zurück'
 
   const badgeCls = getAuftragBadgeClass(item.auftrag_id || item.auftrag?.id)
 
   const handleUpdate = (field, value) => {
-    onUpdate(item.id, { ...item, [field]: value })
+    onUpdate(item.schritt_id, { ...item, [field]: value })
   }
 
   return (
@@ -74,14 +74,14 @@ function AuswärtsRow({ item, onUpdate, onDelete }) {
           className="text-sm border border-gray-200 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400 w-full min-w-[120px]"
           value={item.dienstleister || ''}
           onChange={e => handleUpdate('dienstleister', e.target.value)}
-          onBlur={e => onUpdate(item.id, { ...item, dienstleister: e.target.value })}
+          onBlur={e => onUpdate(item.schritt_id, { ...item, dienstleister: e.target.value })}
           placeholder="Dienstleister"
         />
       </td>
       <td className="px-4 py-3">
         <InlineDateEdit
-          value={item.abgeschickt}
-          onSave={v => handleUpdate('abgeschickt', v)}
+          value={item.abgeschickt_am}
+          onSave={v => handleUpdate('abgeschickt_am', v)}
           placeholder="Abschicken…"
         />
       </td>
@@ -97,26 +97,26 @@ function AuswärtsRow({ item, onUpdate, onDelete }) {
       </td>
       <td className="px-4 py-3">
         <InlineDateEdit
-          value={item.zurueck}
-          onSave={v => handleUpdate('zurueck', v)}
+          value={item.tatsaechlich_zurueck}
+          onSave={v => handleUpdate('tatsaechlich_zurueck', v)}
           placeholder="Zurückgekehrt…"
         />
       </td>
       <td className="px-4 py-3">
         <select
           className="text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
-          value={item.status || 'Ausstehend'}
-          onChange={e => handleUpdate('status', e.target.value)}
+          value={item.auswarts_status || 'Ausstehend'}
+          onChange={e => handleUpdate('auswarts_status', e.target.value)}
         >
           {AUSWARTS_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </td>
       <td className="px-4 py-3">
-        <StatusBadge status={item.status} />
+        <StatusBadge status={item.auswarts_status} />
       </td>
       <td className="px-4 py-3">
         <button
-          onClick={() => onDelete(item.id)}
+          onClick={() => onDelete(item.schritt_id)}
           className="text-xs px-2.5 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
         >
           Löschen
@@ -131,9 +131,9 @@ function NewAuswärtsForm({ onSave, onCancel }) {
     auftrag_id: '',
     schritt_bezeichnung: '',
     dienstleister: '',
-    abgeschickt: '',
+    abgeschickt_am: '',
     erw_rueckkehr: '',
-    status: 'Ausstehend',
+    auswarts_status: 'Ausstehend',
   })
 
   const handleSubmit = () => {
@@ -182,7 +182,7 @@ function NewAuswärtsForm({ onSave, onCancel }) {
       </td>
       <td className="px-4 py-2">
         <input type="date" className="border border-blue-300 rounded px-2 py-1 text-xs focus:outline-none"
-          value={form.abgeschickt} onChange={e => setForm(f => ({ ...f, abgeschickt: e.target.value }))} />
+          value={form.abgeschickt_am} onChange={e => setForm(f => ({ ...f, abgeschickt_am: e.target.value }))} />
       </td>
       <td className="px-4 py-2">
         <input type="date" className="border border-blue-300 rounded px-2 py-1 text-xs focus:outline-none"
@@ -191,7 +191,7 @@ function NewAuswärtsForm({ onSave, onCancel }) {
       <td className="px-4 py-2" />
       <td className="px-4 py-2">
         <select className="border border-blue-300 rounded px-1.5 py-1 text-xs focus:outline-none bg-white"
-          value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+          value={form.auswarts_status} onChange={e => setForm(f => ({ ...f, auswarts_status: e.target.value }))}>
           {AUSWARTS_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </td>
@@ -250,7 +250,7 @@ export default function AuswärtsTracker() {
   }
 
   const overdueCount = auswarts.filter(a =>
-    a.erw_rueckkehr && new Date(a.erw_rueckkehr) < new Date() && a.status !== 'Zurück'
+    a.erw_rueckkehr && new Date(a.erw_rueckkehr) < new Date() && a.auswarts_status !== 'Zurück'
   ).length
 
   return (
@@ -328,7 +328,7 @@ export default function AuswärtsTracker() {
                 ) : (
                   auswarts.map(item => (
                     <AuswärtsRow
-                      key={item.id}
+                      key={item.schritt_id}
                       item={item}
                       onUpdate={handleUpdate}
                       onDelete={handleDelete}

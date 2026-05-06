@@ -46,10 +46,10 @@ function StatusBadge({ schritt }) {
 
 function KWCell({ schritt, onSave }) {
   const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState(schritt.kw || '')
+  const [value, setValue] = useState(schritt.geplant_kw || '')
 
   const handleConfirm = () => {
-    if (value !== schritt.kw) {
+    if (value !== schritt.geplant_kw) {
       onSave(schritt.id, value)
     }
     setEditing(false)
@@ -80,7 +80,7 @@ function KWCell({ schritt, onSave }) {
       onClick={() => setEditing(true)}
       className="text-blue-600 hover:underline text-xs font-medium"
     >
-      {schritt.kw ? kwToLabel(schritt.kw) : <span className="text-gray-400 italic">–</span>}
+      {schritt.geplant_kw ? kwToLabel(schritt.geplant_kw) : <span className="text-gray-400 italic">–</span>}
     </button>
   )
 }
@@ -145,7 +145,8 @@ export default function PlanungsListe() {
   }
 
   const handleFieldUpdate = (schritt, field, value) => {
-    updateMutation.mutate({ id: schritt.id, data: { ...schritt, [field]: value } })
+    const { auftrag, ampel, status, kunde, liefertermin, ...clean } = schritt
+    updateMutation.mutate({ id: schritt.id, data: { ...clean, [field]: value } })
   }
 
   const resetFilters = () => setFilters({
@@ -154,8 +155,8 @@ export default function PlanungsListe() {
 
   const sorted = useMemo(() => {
     return [...schritte].sort((a, b) => {
-      const ka = a.kw || ''
-      const kb = b.kw || ''
+      const ka = a.geplant_kw || ''
+      const kb = b.geplant_kw || ''
       return ka.localeCompare(kb)
     })
   }, [schritte])
@@ -366,7 +367,7 @@ export default function PlanungsListe() {
 
 function BemerkungCell({ schritt, onSave }) {
   const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState(schritt.bemerkung || '')
+  const [value, setValue] = useState(schritt.bemerkungen || '')
 
   if (editing) {
     return (
@@ -378,13 +379,13 @@ function BemerkungCell({ schritt, onSave }) {
           onChange={e => setValue(e.target.value)}
           onKeyDown={e => {
             if (e.key === 'Enter') {
-              onSave(schritt, 'bemerkung', value)
+              onSave(schritt, 'bemerkungen', value)
               setEditing(false)
             }
             if (e.key === 'Escape') setEditing(false)
           }}
           onBlur={() => {
-            onSave(schritt, 'bemerkung', value)
+            onSave(schritt, 'bemerkungen', value)
             setEditing(false)
           }}
           autoFocus
@@ -396,9 +397,9 @@ function BemerkungCell({ schritt, onSave }) {
     <button
       onClick={() => setEditing(true)}
       className="text-left text-gray-500 text-xs hover:text-gray-800 truncate max-w-[10rem] block"
-      title={schritt.bemerkung}
+      title={schritt.bemerkungen}
     >
-      {schritt.bemerkung || <span className="text-gray-300 italic">Bemerkung…</span>}
+      {schritt.bemerkungen || <span className="text-gray-300 italic">Bemerkung…</span>}
     </button>
   )
 }

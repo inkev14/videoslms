@@ -22,8 +22,8 @@ export const auftraegeApi = {
   create: (data) => api.post('/auftraege', data).then((r) => r.data),
   update: (id, data) => api.put(`/auftraege/${id}`, data).then((r) => r.data),
   delete: (id) => api.delete(`/auftraege/${id}`).then((r) => r.data),
-  reorder: (id, positions) =>
-    api.put(`/auftraege/${id}/reorder`, { positions }).then((r) => r.data),
+  reorder: (id, items) =>
+    api.put(`/auftraege/${id}/reorder`, { items }).then((r) => r.data),
 }
 
 // ─── Arbeitsschritte ─────────────────────────────────────────────────────────
@@ -61,8 +61,8 @@ export const vorlagenApi = {
       .then((r) => r.data),
   deleteSchritt: (vorlagenId, schrittId) =>
     api.delete(`/vorlagen/${vorlagenId}/schritte/${schrittId}`).then((r) => r.data),
-  reorder: (id, positions) =>
-    api.put(`/vorlagen/${id}/reorder`, { positions }).then((r) => r.data),
+  reorder: (id, items) =>
+    api.put(`/vorlagen/${id}/reorder`, { items }).then((r) => r.data),
   duplizieren: (id) =>
     api.post(`/vorlagen/${id}/duplizieren`).then((r) => r.data),
 }

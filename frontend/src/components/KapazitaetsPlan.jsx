@@ -92,7 +92,7 @@ export default function KapazitaetsPlan() {
   const unassigned = {}
   for (const s of schritte) {
     const mid = s.monteur_id || '__unassigned__'
-    const kw = s.kw || '__nokw__'
+    const kw = s.geplant_kw || '__nokw__'
     if (!grid[mid]) grid[mid] = {}
     if (!grid[mid][kw]) grid[mid][kw] = []
     grid[mid][kw].push(s)
