@@ -170,6 +170,9 @@ class ArbeitsschrittResponse(BaseModel):
     bemerkungen: Optional[str] = None
     auswarts_info: Optional[AuswärtsInfoResponse] = None
     ampel: Optional[str] = None  # computed field
+    # Optional auftrag meta (populated in list view)
+    kunde: Optional[str] = None
+    liefertermin: Optional[date] = None
 
 
 # ---------------------------------------------------------------------------
