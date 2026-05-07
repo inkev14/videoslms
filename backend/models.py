@@ -56,6 +56,8 @@ class Arbeitsschritt(Base):
     eff_ende = Column(String, nullable=True)
     abgeschlossen = Column(Boolean, default=False, nullable=False)
     bemerkungen = Column(Text, nullable=True, default="")
+    dauer_tage = Column(Integer, default=1)
+    lieferant = Column(Text, nullable=True)
 
     # relationships
     auftrag = relationship("Auftrag", back_populates="schritte")

@@ -132,6 +132,8 @@ class ArbeitsschrittCreate(BaseModel):
     eff_ende: Optional[date] = None
     abgeschlossen: bool = False
     bemerkungen: Optional[str] = ""
+    dauer_tage: int = 1
+    lieferant: Optional[str] = None
 
 
 class ArbeitsschrittUpdate(BaseModel):
@@ -148,6 +150,8 @@ class ArbeitsschrittUpdate(BaseModel):
     eff_ende: Optional[date] = None
     abgeschlossen: Optional[bool] = None
     bemerkungen: Optional[str] = None
+    dauer_tage: Optional[int] = None
+    lieferant: Optional[str] = None
 
 
 class ArbeitsschrittResponse(BaseModel):
@@ -168,6 +172,8 @@ class ArbeitsschrittResponse(BaseModel):
     eff_ende: Optional[date] = None
     abgeschlossen: bool
     bemerkungen: Optional[str] = None
+    dauer_tage: int = 1
+    lieferant: Optional[str] = None
     auswarts_info: Optional[AuswärtsInfoResponse] = None
     ampel: Optional[str] = None  # computed field
     # Optional auftrag meta (populated in list view)

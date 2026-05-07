@@ -75,4 +75,11 @@ export const auswärtsApi = {
   delete: (id) => api.delete(`/auswarts/${id}`).then((r) => r.data),
 }
 
+// ─── Planning ────────────────────────────────────────────────────────────────
+export const planningApi = {
+  scheduleAuftrag: (id) => api.post(`/planning/schedule/${id}`).then(r => r.data),
+  scheduleAll: () => api.post('/planning/schedule-all').then(r => r.data),
+  getConflicts: () => api.get('/planning/conflicts').then(r => r.data),
+}
+
 export default api

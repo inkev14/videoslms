@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import toast from 'react-hot-toast'
-import { auftraegeApi, arbeitsschritteApi, monteureApi } from '../api/client.js'
+import { auftraegeApi, arbeitsschritteApi, monteureApi, planningApi } from '../api/client.js'
 import { getAuftragBadgeClass } from '../utils/colors.js'
 import { kwToLabel, getKWRange } from '../utils/kw.js'
 
@@ -120,6 +120,16 @@ function SortableSchritt({ schritt, index, monteure, onUpdate, onDelete, kwOptio
         </select>
       </td>
       <td className="px-2 py-2">
+        <input
+          type="number"
+          min={1}
+          max={999}
+          className="text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 w-16"
+          value={local.dauer_tage ?? 1}
+          onChange={e => handleChange('dauer_tage', parseInt(e.target.value, 10) || 1)}
+        />
+      </td>
+      <td className="px-2 py-2">
         <select
           className="text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
           value={local.teile_status || 'N/A'}
@@ -127,6 +137,17 @@ function SortableSchritt({ schritt, index, monteure, onUpdate, onDelete, kwOptio
         >
           {TEILE_STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
+      </td>
+      <td className="px-2 py-2">
+        {local.teile_status === 'Fehlt' && (
+          <input
+            type="text"
+            className="text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 w-28"
+            value={local.lieferant || ''}
+            onChange={e => handleChange('lieferant', e.target.value)}
+            placeholder="Lieferant"
+          />
+        )}
       </td>
       <td className="px-2 py-2">
         <input
@@ -181,6 +202,8 @@ function NewSchrittRow({ auftragId, monteure, kwOptions, onSave, onCancel }) {
     monteur_id: '',
     geplant_kw: '',
     teile_status: 'N/A',
+    dauer_tage: 1,
+    lieferant: '',
   })
 
   const handleSubmit = () => {
@@ -233,6 +256,16 @@ function NewSchrittRow({ auftragId, monteure, kwOptions, onSave, onCancel }) {
         </select>
       </td>
       <td className="px-2 py-2">
+        <input
+          type="number"
+          min={1}
+          max={999}
+          className="text-xs border border-blue-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 w-16"
+          value={form.dauer_tage}
+          onChange={e => setForm(f => ({ ...f, dauer_tage: parseInt(e.target.value, 10) || 1 }))}
+        />
+      </td>
+      <td className="px-2 py-2">
         <select
           className="text-xs border border-blue-300 rounded px-1.5 py-1 focus:outline-none bg-white"
           value={form.teile_status}
@@ -241,7 +274,16 @@ function NewSchrittRow({ auftragId, monteure, kwOptions, onSave, onCancel }) {
           {TEILE_STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </td>
-      <td colSpan={3} />
+      <td className="px-2 py-2">
+        <input
+          type="text"
+          className="text-xs border border-blue-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 w-28"
+          value={form.lieferant}
+          onChange={e => setForm(f => ({ ...f, lieferant: e.target.value }))}
+          placeholder="Lieferant"
+        />
+      </td>
+      <td colSpan={2} />
       <td className="px-2 py-2">
         <div className="flex items-center gap-1">
           <button onClick={handleSubmit} className="text-xs px-2 py-0.5 bg-blue-600 text-white rounded hover:bg-blue-700">Hinzufügen</button>
@@ -324,6 +366,21 @@ export default function AuftragDetail({ auftragId, onClose }) {
     onError: (err) => toast.error(err.message),
   })
 
+  const planMutation = useMutation({
+    mutationFn: () => planningApi.scheduleAuftrag(auftragId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['auftraege', auftragId] })
+      queryClient.invalidateQueries({ queryKey: ['arbeitsschritte'] })
+      setLocalSchritte(null) // force refresh
+      if (data.liefertermin_gefaehrdet) {
+        toast.error('Achtung: Liefertermin gefährdet!')
+      } else {
+        toast.success(`${data.schritte?.length ?? 0} Schritte geplant`)
+      }
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
   const reorderMutation = useMutation({
     mutationFn: (positions) => auftraegeApi.reorder(auftragId, positions),
     onSuccess: () => {
@@ -385,12 +442,21 @@ export default function AuftragDetail({ auftragId, onClose }) {
           </div>
           <div className="flex items-center gap-2">
             {!editHeader && auftrag && (
-              <button
-                onClick={() => { setEditHeader(true); setHeaderForm({ ...auftrag }) }}
-                className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
-              >
-                Bearbeiten
-              </button>
+              <>
+                <button
+                  onClick={() => planMutation.mutate()}
+                  disabled={planMutation.isPending}
+                  className="px-3 py-1.5 text-xs rounded-lg border border-green-300 text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50"
+                >
+                  {planMutation.isPending ? 'Plane...' : '⚡ Auto-Plan'}
+                </button>
+                <button
+                  onClick={() => { setEditHeader(true); setHeaderForm({ ...auftrag }) }}
+                  className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                >
+                  Bearbeiten
+                </button>
+              </>
             )}
             <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none ml-2">&times;</button>
           </div>
@@ -492,7 +558,9 @@ export default function AuftragDetail({ auftragId, onClose }) {
                             <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500">Bezeichnung</th>
                             <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500">Monteur</th>
                             <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500">KW</th>
+                            <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500">Dauer</th>
                             <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500">Teile</th>
+                            <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500">Lieferant</th>
                             <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500">Eff. Start</th>
                             <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500">Eff. Ende</th>
                             <th className="px-2 py-2 text-center text-xs font-semibold text-gray-500">✓</th>
@@ -502,7 +570,7 @@ export default function AuftragDetail({ auftragId, onClose }) {
                         <tbody>
                           {schritte.length === 0 && !addingSchritt ? (
                             <tr>
-                              <td colSpan={11} className="text-center py-8 text-gray-400 text-sm">
+                              <td colSpan={13} className="text-center py-8 text-gray-400 text-sm">
                                 Noch keine Schritte. Fügen Sie einen Schritt hinzu.
                               </td>
                             </tr>

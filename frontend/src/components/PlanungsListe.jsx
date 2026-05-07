@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { arbeitsschritteApi, monteureApi } from '../api/client.js'
+import { arbeitsschritteApi, monteureApi, planningApi } from '../api/client.js'
 import { kwToLabel, getCurrentKW, getKWRange } from '../utils/kw.js'
 import { getAuftragBorderClass, getAuftragBadgeClass } from '../utils/colors.js'
 
@@ -140,6 +140,18 @@ export default function PlanungsListe() {
     onError: (err) => toast.error(err.message),
   })
 
+  const scheduleAllMutation = useMutation({
+    mutationFn: planningApi.scheduleAll,
+    onSuccess: (results) => {
+      queryClient.invalidateQueries({ queryKey: ['arbeitsschritte'] })
+      queryClient.invalidateQueries({ queryKey: ['auftraege'] })
+      const warned = Array.isArray(results) ? results.filter(r => r.liefertermin_gefaehrdet).length : 0
+      if (warned > 0) toast.error(`${warned} Aufträge gefährden den Liefertermin`)
+      else toast.success('Alle Aufträge geplant')
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
   const handleKWChange = (id, kw) => {
     verschiebenMutation.mutate({ id, kw })
   }
@@ -238,6 +250,13 @@ export default function PlanungsListe() {
           >
             Filter zurücksetzen
           </button>
+          <button
+            onClick={() => scheduleAllMutation.mutate()}
+            disabled={scheduleAllMutation.isPending}
+            className="px-3 py-1.5 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors ml-auto"
+          >
+            {scheduleAllMutation.isPending ? 'Plane...' : '⚡ Alle planen'}
+          </button>
         </div>
       </div>
 
@@ -269,7 +288,9 @@ export default function PlanungsListe() {
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Bezeichnung</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Monteur</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">KW</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Dauer</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Teile</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Lieferant</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Bemerkung</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-10">✓</th>
@@ -326,6 +347,9 @@ export default function PlanungsListe() {
                         <KWCell schritt={schritt} onSave={handleKWChange} />
                       </td>
                       <td className="px-3 py-2.5">
+                        <DauerCell schritt={schritt} onSave={handleFieldUpdate} />
+                      </td>
+                      <td className="px-3 py-2.5">
                         <select
                           className="text-xs border border-gray-200 rounded px-1.5 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
                           value={schritt.teile_status || 'N/A'}
@@ -333,6 +357,11 @@ export default function PlanungsListe() {
                         >
                           {TEILE_STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {schritt.teile_status === 'Fehlt' && (
+                          <LieferantCell schritt={schritt} onSave={handleFieldUpdate} />
+                        )}
                       </td>
                       <td className="px-3 py-2.5">
                         <StatusBadge schritt={schritt} />
@@ -362,6 +391,89 @@ export default function PlanungsListe() {
         )}
       </div>
     </div>
+  )
+}
+
+function DauerCell({ schritt, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(schritt.dauer_tage ?? 1)
+
+  const handleConfirm = () => {
+    const parsed = parseInt(value, 10)
+    if (!isNaN(parsed) && parsed !== schritt.dauer_tage) {
+      onSave(schritt, 'dauer_tage', parsed)
+    }
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          min={1}
+          max={999}
+          className="w-14 border border-blue-400 rounded px-1 py-0.5 text-xs focus:outline-none"
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') handleConfirm()
+            if (e.key === 'Escape') setEditing(false)
+          }}
+          onBlur={handleConfirm}
+          autoFocus
+        />
+      </div>
+    )
+  }
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      className="text-gray-600 hover:text-blue-600 text-xs font-medium tabular-nums"
+    >
+      {schritt.dauer_tage ? `${schritt.dauer_tage}d` : <span className="text-gray-300 italic">1d</span>}
+    </button>
+  )
+}
+
+function LieferantCell({ schritt, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(schritt.lieferant || '')
+
+  const handleConfirm = () => {
+    if (value !== (schritt.lieferant || '')) {
+      onSave(schritt, 'lieferant', value)
+    }
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          type="text"
+          className="w-28 border border-blue-400 rounded px-1 py-0.5 text-xs focus:outline-none"
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') handleConfirm()
+            if (e.key === 'Escape') setEditing(false)
+          }}
+          onBlur={handleConfirm}
+          autoFocus
+          placeholder="Lieferant"
+        />
+      </div>
+    )
+  }
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      className="text-left text-gray-600 text-xs hover:text-blue-600 truncate max-w-[7rem] block"
+      title={schritt.lieferant}
+    >
+      {schritt.lieferant || <span className="text-gray-300 italic">Lieferant…</span>}
+    </button>
   )
 }
 
