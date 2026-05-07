@@ -4,9 +4,11 @@ import KapazitaetsPlan from './components/KapazitaetsPlan.jsx'
 import AuftraegeView from './components/AuftraegeView.jsx'
 import AuswärtsTracker from './components/AuswärtsTracker.jsx'
 import VorlagenVerwaltung from './components/VorlagenVerwaltung.jsx'
+import GanttView from './components/GanttView.jsx'
 
 const TABS = [
   { id: 'planung', label: 'Planungsliste' },
+  { id: 'gantt', label: 'Gantt' },
   { id: 'kapazitaet', label: 'Kapazitätsplan' },
   { id: 'auftraege', label: 'Aufträge' },
   { id: 'auswarts', label: 'Auswärts' },
@@ -71,6 +73,7 @@ export default function App() {
       {/* Main content */}
       <main className="max-w-screen-2xl mx-auto px-4 py-6">
         {activeTab === 'planung' && <PlanungsListe />}
+        {activeTab === 'gantt' && <GanttView />}
         {activeTab === 'kapazitaet' && <KapazitaetsPlan />}
         {activeTab === 'auftraege' && <AuftraegeView />}
         {activeTab === 'auswarts' && <AuswärtsTracker />}
